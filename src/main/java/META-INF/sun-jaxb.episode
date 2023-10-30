@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<bindings xmlns="http://java.sun.com/xml/ns/jaxb" if-exists="true" version="2.1">
+      
+    <!--
+
+Este archivo ha sido generado por la arquitectura JavaTM para la implantación de la referencia de enlace (JAXB) XML v2.3.0 
+Visite <a href="https://javaee.github.io/jaxb-v2/">https://javaee.github.io/jaxb-v2/</a> 
+Todas las modificaciones realizadas en este archivo se perderán si se vuelve a compilar el esquema de origen. 
+Generado el: 2023.10.30 a las 03:40:17 PM ECT 
+
+  -->
+      
+    <bindings xmlns:tns="http://ec.gob.sri.ws.autorizacion" if-exists="true" scd="x-schema::tns">
+            
+        <schemaBindings map="false">
+                  
+            <package name="com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion"/>
+                
+        </schemaBindings>
+            
+        <bindings if-exists="true" scd="~tns:respuestaLote">
+                  
+            <class ref="com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion.RespuestaLote"/>
+                
+        </bindings>
+            
+        <bindings if-exists="true" scd="~tns:respuestaComprobante">
+                  
+            <class ref="com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion.RespuestaComprobante"/>
+                
+        </bindings>
+            
+        <bindings if-exists="true" scd="~tns:autorizacion">
+                  
+            <class ref="com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion.Autorizacion"/>
+                
+        </bindings>
+            
+        <bindings if-exists="true" scd="~tns:autorizacionComprobante">
+                  
+            <class ref="com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion.AutorizacionComprobante"/>
+                
+        </bindings>
+            
+        <bindings if-exists="true" scd="~tns:autorizacionComprobanteLote">
+                  
+            <class ref="com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion.AutorizacionComprobanteLote"/>
+                
+        </bindings>
+            
+        <bindings if-exists="true" scd="~tns:autorizacionComprobanteLoteResponse">
+                  
+            <class ref="com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion.AutorizacionComprobanteLoteResponse"/>
+                
+        </bindings>
+            
+        <bindings if-exists="true" scd="~tns:autorizacionComprobanteResponse">
+                  
+            <class ref="com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion.AutorizacionComprobanteResponse"/>
+                
+        </bindings>
+            
+        <bindings if-exists="true" scd="~tns:mensaje">
+                  
+            <class ref="com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion.Mensaje"/>
+                
+        </bindings>
+          
+    </bindings>
+    
+</bindings>
