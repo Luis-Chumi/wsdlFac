@@ -5,6 +5,8 @@
 
 package com.cumple.FacturacionElectronicaPrueba.modules.xades;
 
+import org.bouncycastle.jcajce.provider.digest.SHA1;
+import org.bouncycastle.util.encoders.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -70,18 +72,18 @@ public class XmlFirma {
             MessageDigest sha1Digest= MessageDigest.getInstance("SHA-1");
             byte[] sha1Bytes= sha1Digest.digest(certificateX509_der);
             //conversion a base64
-            certificateX509_der_hash =Base64.getEncoder().encodeToString(sha1Bytes);
+            certificateX509_der_hash = new String(Base64.encode(sha1Bytes),StandardCharsets.UTF_8);
             //Obtener emisor (Issuer)
             Principal issuerPrincipal= certificate.getIssuerDN();
             issuerName= issuerPrincipal.getName();
             //Obtener el numero de serie (SerialNumber)
             serialNumber=certificate.getSerialNumber();
             //Certificado en formato Base64
-            certificadoBase64= Base64.getEncoder().encodeToString(certificate.getEncoded());
+            certificadoBase64= new String(Base64.encode(certificate.getEncoded()),StandardCharsets.UTF_8);
             //Modulo de la clave pública
             RSAPublicKey publicKey=(RSAPublicKey) certificate.getPublicKey();
-            System.out.println(publicKey);
-            modulusBase64 = Base64.getEncoder().encodeToString(publicKey.getModulus().toByteArray());
+
+            modulusBase64 = new String(Base64.encode(publicKey.getModulus().toByteArray()),StandardCharsets.UTF_8);
         }catch (Exception e){
             log.error("Error: \n {}", e.getMessage());
             return null;
@@ -190,8 +192,7 @@ public class XmlFirma {
             keyInfo.appendChild(x509Data);
 
             Element x509Certificate= doc.createElementNS(URI_DS,"ds:X509Certificate");
-            certificadoBase64=certificadoBase64=certificadoBase64.replaceAll("(.{76})","$1 ");
-            x509Certificate.appendChild(doc.createTextNode(certificadoBase64));
+            x509Certificate.appendChild(doc.createTextNode("\n"+formatearBase64(certificadoBase64)));
             x509Data.appendChild(x509Certificate);
 
             Element keyValue= doc.createElementNS(URI_DS,"ds:KeyValue");
@@ -199,8 +200,7 @@ public class XmlFirma {
             Element rsaKeyValue= doc.createElementNS(URI_DS,"ds:RSAKeyValue");
             keyValue.appendChild(rsaKeyValue);
             Element modulums= doc.createElementNS(URI_DS,"ds:Modulus");
-            modulusBase64=modulusBase64.replaceAll("(.{76})","$1 ");
-            modulums.appendChild(doc.createTextNode(modulusBase64));
+            modulums.appendChild(doc.createTextNode("\n"+formatearBase64(modulusBase64)));
             rsaKeyValue.appendChild(modulums);
             Element exponent= doc.createElementNS(URI_DS,"ds:Exponent");
             exponent.setTextContent(EXPONENT);
@@ -227,9 +227,10 @@ public class XmlFirma {
 
             Element digestValueMethod= doc.createElementNS(URI_DS,"ds:DigestValue");
             String signedProperies= convertElementToString(signedPropertiesElement);
+            signedProperies = signedProperies.replace("<etsi:SignedProperties", "<etsi:SignedProperties xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"");
             String base64String=base64Encode(signedProperies);
-            digestValueMethod.setTextContent(base64String);
-            referenceElement.appendChild(digestValueMethod);//agrega este elemnto dentro de referenceElement
+            digestValueMethod.appendChild(doc.createTextNode(base64String));
+            referenceElement.appendChild(digestValueMethod);//agrega este elemento dentro de referenceElement
 
             Element referenceCertElement=doc.createElementNS(URI_DS,"ds:Reference");
             referenceCertElement.setAttribute("URI","#Certificate"+certificateId);
@@ -240,8 +241,9 @@ public class XmlFirma {
 
             Element digestValueCer= doc.createElementNS(URI_DS,"ds:DigestValue");
             String keyInfoString=convertElementToString(keyInfo);
+            keyInfoString=keyInfoString.replace("<ds:KeyInfo","<ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"");
             String base64KeyInfo=base64Encode(keyInfoString);
-            digestValueCer.setTextContent(base64KeyInfo);
+            digestValueCer.appendChild(doc.createTextNode(base64KeyInfo));
             referenceCertElement.appendChild(digestValueCer);
 
             Element referenceIdElement=doc.createElementNS(URI_DS,"ds:Reference");
@@ -253,11 +255,13 @@ public class XmlFirma {
             transform.setAttribute("Algorithm","http://www.w3.org/2000/09/xmldsig#enveloped-signature");
             transformElement.appendChild(transform);
             referenceIdElement.appendChild(transformElement);
-            Element digestReference=doc.createElementNS(URI_DS,"ds:DigestMEthod");
+            Element digestReference=doc.createElementNS(URI_DS,"ds:DigestMethod");
             digestReference.setAttribute("Algorithm","http://www.w3.org/2000/09/xmldsig#sha1");
             referenceIdElement.appendChild(digestReference);
             Element digestValueRef= doc.createElementNS(URI_DS,"ds:DigestValue");
-            String base64Xml=base64Encode(xmlContent);
+            Element facturaElement=(Element) doc.getElementsByTagName("factura").item(0);
+            String facturaHash=convertElementToString(facturaElement);
+            String base64Xml=base64Encode(facturaHash);
             digestValueRef.setTextContent(base64Xml);
             referenceIdElement.appendChild(digestValueRef);
 
@@ -276,11 +280,15 @@ public class XmlFirma {
             signatureElement.appendChild(keyInfo);
             signatureElement.appendChild(object);
 
-            Document firma=firmarDocuemnto(key,doc,signatureValueElement);
-            String firmadoX=convertDocumentToString(firma);
+
+            String infoAFirmar=convertElementToString(signedInfoElement);
+            infoAFirmar=infoAFirmar.replace("<ds:SignedInfo","<ds:SignedInfo xmlns:etsi=\"http://uri.etsi.org/01903/v1.3.2#\"");
+            System.out.println(infoAFirmar);
+            String valorFirma=generarFirma(key,infoAFirmar);
+            signatureValueElement.appendChild(doc.createTextNode("\n"+formatearBase64(valorFirma)));
 
             String xmlFirmado=convertDocumentToString(doc);
-            log.info("XML Firmado :\n{}",firmadoX);
+           // log.info("XML Firmado :\n{}",xmlFirmado);
             return xmlFirmado;
         }catch (Exception e){
             e.printStackTrace();
@@ -299,16 +307,16 @@ public class XmlFirma {
     private static String convertDocumentToString(Document doc) throws TransformerException {
         TransformerFactory tf = TransformerFactory.newInstance();
         Transformer transformer = tf.newTransformer();
-        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
-        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
-        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
 
-        transformer.setOutputProperty(OutputKeys.STANDALONE,"no");
+        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+        /*transformer.setOutputProperty(OutputKeys.INDENT, "yes");*/
 
         StringWriter writer = new StringWriter();
         transformer.transform(new DOMSource(doc), new StreamResult(writer));
 
-        return writer.toString();
+        String result= writer.toString();
+        result=result.replace(" standalone=\"no\"","");
+        return result;
     }
 
     /**
@@ -336,7 +344,9 @@ public class XmlFirma {
             TransformerFactory tf= TransformerFactory.newInstance();
             Transformer transformer=tf.newTransformer();
 
-            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION,"yes");
+           /* transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION,"yes");
+            transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");*/
 
             StringWriter writer= new StringWriter();
             transformer.transform(new DOMSource(element),new StreamResult(writer));
@@ -355,10 +365,10 @@ public class XmlFirma {
      */
     private String base64Encode(String input){
         try {
-            java.security.MessageDigest md= java.security.MessageDigest.getInstance("SHA-1");
+            MessageDigest md=new SHA1.Digest();
             byte[] digest=md.digest(input.getBytes(StandardCharsets.UTF_8));
 
-            return Base64.getEncoder().encodeToString(digest);
+            return new String(Base64.encode(digest), StandardCharsets.UTF_8);
         }catch (Exception e){
             e.printStackTrace();
             log.error("Error: \n {}",e.getMessage());
@@ -383,22 +393,57 @@ public class XmlFirma {
 
         byte[] signatureBytes= signature.sign();
 
-        String signatureBase64=Base64.getEncoder().encodeToString(signatureBytes);
-        signatureBase64= signatureBase64.replaceAll("(.{76})","$1 ");
-
-        return signatureBase64;
+        return new String(Base64.encode(signatureBytes),StandardCharsets.UTF_8);
     }
 
+    protected String formatearBase64(String base64Encoded){
+        StringBuilder formattedOutput = new StringBuilder();
+        for (int i = 0; i < base64Encoded.length(); i += 76) {
+            int end = Math.min(i + 76, base64Encoded.length());
+            formattedOutput.append(base64Encoded, i, end).append("\n");
+        }
+        return formattedOutput.toString();
+    }
 
-    private static Document firmarDocuemnto(Key key,Document doc,Element signatureValueElement)throws Exception{
-        String firmaXmlString =convertElementToString(signatureValueElement);
+    public void probar (){
+        StringBuilder xmlFragmentBuilder = new StringBuilder();
 
-        String firma=generarFirma(key,firmaXmlString);
+        int numero=12345678;
 
-        signatureValueElement.setTextContent(null);
+        // Agregar el fragmento XML
+        xmlFragmentBuilder.append("<ds:Object Id=\"Signature"+numero+"-Object692798\"> \n");
+        xmlFragmentBuilder.append("<etsi:QualifyingProperties Target=\"#Signature744819\">");
+        xmlFragmentBuilder.append("<etsi:SignedProperties Id=\"Signature744819-SignedProperties192052\">");
+        xmlFragmentBuilder.append("<etsi:SignedSignatureProperties>");
+        xmlFragmentBuilder.append("<etsi:SigningTime>2023-11-24T17:44:27+00:00</etsi:SigningTime>");
+        xmlFragmentBuilder.append("<etsi:SigningCertificate>");
+        xmlFragmentBuilder.append("<etsi:Cert>");
+        xmlFragmentBuilder.append("<etsi:CertDigest>");
+        xmlFragmentBuilder.append("<ds:DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha1\"/>");
+        xmlFragmentBuilder.append("<ds:DigestValue>NURYxUVzjPM6bR7qlRtBjMJRwhU=</ds:DigestValue>");
+        xmlFragmentBuilder.append("</etsi:CertDigest>");
+        xmlFragmentBuilder.append("<etsi:IssuerSerial>");
+        xmlFragmentBuilder.append("<ds:X509IssuerName>CN=AUTORIDAD DE CERTIFICACION SUBCA-2 SECURITY DATA,OU=ENTIDAD DE CERTIFICACION DE INFORMACION,O=SECURITY DATA S.A. 2,C=EC</ds:X509IssuerName>");
+        xmlFragmentBuilder.append("<ds:X509SerialNumber>596626771</ds:X509SerialNumber>");
+        xmlFragmentBuilder.append("</etsi:IssuerSerial>");
+        xmlFragmentBuilder.append("</etsi:Cert>");
+        xmlFragmentBuilder.append("</etsi:SigningCertificate>");
+        xmlFragmentBuilder.append("</etsi:SignedSignatureProperties>");
+        xmlFragmentBuilder.append("<etsi:SignedDataObjectProperties>");
+        xmlFragmentBuilder.append("<etsi:DataObjectFormat ObjectReference=\"#Reference-ID-225800\">");
+        xmlFragmentBuilder.append("<etsi:Description>contenido comprobante</etsi:Description>");
+        xmlFragmentBuilder.append("<etsi:MimeType>text/xml</etsi:MimeType>");
+        xmlFragmentBuilder.append("</etsi:DataObjectFormat>");
+        xmlFragmentBuilder.append("</etsi:SignedDataObjectProperties>");
+        xmlFragmentBuilder.append("</etsi:SignedProperties>");
+        xmlFragmentBuilder.append("</etsi:QualifyingProperties>");
+        xmlFragmentBuilder.append("</ds:Object>");
 
-        signatureValueElement.appendChild(doc.createTextNode(firma));
-        return doc;
+        // Obtener el string final
+        String xmlFragment = xmlFragmentBuilder.toString();
+
+        // Imprimir el resultado
+        System.out.println(xmlFragment);
     }
 
 }
