@@ -50,6 +50,12 @@
 			<artifactId>bcprov-jdk15on</artifactId>
 			<version>1.70</version>
 		</dependency>
+		<!-- Generadores PEM  -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk15on</artifactId>
+			<version>1.70</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.santuario</groupId>
 			<artifactId>xmlsec</artifactId>
@@ -72,7 +78,6 @@
 			<artifactId>jaxb2-basics</artifactId>
 			<version>1.11.1</version>
 		</dependency>
-
 
 	</dependencies>
 
