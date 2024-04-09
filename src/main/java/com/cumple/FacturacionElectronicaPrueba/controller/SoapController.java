@@ -7,11 +7,13 @@ package com.cumple.FacturacionElectronicaPrueba.controller;
 
 import com.cumple.FacturacionElectronicaPrueba.client.SoapClient;
 import com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion.AutorizacionComprobanteResponse;
+import com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion.RespuestaComprobante;
 import com.cumple.FacturacionElectronicaPrueba.wsdl.recepcion.RespuestaSolicitud;
 import com.cumple.FacturacionElectronicaPrueba.wsdl.recepcion.ValidarComprobanteResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,7 +30,7 @@ public class SoapController {
 
     @Autowired
     @Qualifier("soapClientAutorizacion")
-    private SoapClient soapClientA;
+    private SoapClient soapClientAutorizacion;
 
     @PostMapping("validarComprobante")
     public RespuestaSolicitud validarComprobante(@RequestBody byte[] xml){
@@ -57,10 +59,26 @@ public class SoapController {
         }
     }
 
-    @PostMapping("autorizacion")
-    public ResponseEntity<?> verauth(@RequestParam String clave){
-        AutorizacionComprobanteResponse response=soapClientA.getAutorizacion(clave);
-        return ResponseEntity.ok(response);
+    @PostMapping("convertirBytes")
+    public byte[] convertir(@RequestBody String xml) {
+        return xml.getBytes(StandardCharsets.UTF_8);
     }
+
+    @PostMapping("/autorizacion")
+    public ResponseEntity<AutorizacionComprobanteResponse> verificarAutorizacion(@RequestBody String clave) {
+        try {
+            // Validar la entrada (por ejemplo, clave no nula o vacía)
+            if (clave == null || clave.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            AutorizacionComprobanteResponse response = soapClientAutorizacion.getAutorizacion(clave);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            // Manejo de excepciones
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
 
 }

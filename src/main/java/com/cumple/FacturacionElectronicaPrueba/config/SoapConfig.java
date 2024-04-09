@@ -17,36 +17,27 @@ public class SoapConfig {
 
     @Bean
     @Primary
-    public Jaxb2Marshaller marshallerRecepcion(){
-        Jaxb2Marshaller marshaller= new Jaxb2Marshaller();
-        marshaller.setContextPath("com.cumple.FacturacionElectronicaPrueba.wsdl.recepcion");
+    public Jaxb2Marshaller marshaller() {
+        Jaxb2Marshaller marshaller = new Jaxb2Marshaller();
+        marshaller.setPackagesToScan("com.cumple.FacturacionElectronicaPrueba.wsdl.recepcion", "com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion");
         return marshaller;
     }
 
     @Bean
-    public  Jaxb2Marshaller marshallerAutorizacion(){
-        Jaxb2Marshaller marsaller= new Jaxb2Marshaller();
-        marsaller.setContextPath("com.cumple.FacturacionElectronicaPrueba.wsdl.autorizacion");
-        return marsaller;
+    public SoapClient soapClientRecepcion(@Qualifier("marshaller") Jaxb2Marshaller marshaller) {
+        return createSoapClient(marshaller, "https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline");
     }
 
     @Bean
-    public SoapClient soapClientRecepcion(@Qualifier("marshallerRecepcion") Jaxb2Marshaller marshaller){
-        SoapClient soapClient= new SoapClient(marshaller);
-        soapClient.setDefaultUri("https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline");
-        soapClient.setMarshaller(marshaller);
-        soapClient.setUnmarshaller(marshaller);
-
-        return soapClient;
+    public SoapClient soapClientAutorizacion(@Qualifier("marshaller") Jaxb2Marshaller marshaller) {
+        return createSoapClient(marshaller, "https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline");
     }
 
-    @Bean
-    public SoapClient soapClientAutorizacion(@Qualifier("marshallerAutorizacion") Jaxb2Marshaller marshaller){
-        SoapClient soapClient=new SoapClient(marshaller);
-        soapClient.setDefaultUri("https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline");
+    private SoapClient createSoapClient(Jaxb2Marshaller marshaller, String defaultUri) {
+        SoapClient soapClient = new SoapClient(marshaller);
+        soapClient.setDefaultUri(defaultUri);
         soapClient.setMarshaller(marshaller);
         soapClient.setUnmarshaller(marshaller);
-
         return soapClient;
     }
 
