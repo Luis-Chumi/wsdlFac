@@ -41,9 +41,10 @@ public class FirmaDigitalUtils {
     private static final String SIGNATURE_VALUE_NUMBER=obtenerAleatorio();
     private static final String OBJEVT_NUMBER=obtenerAleatorio();
 
+    String rutaCertificado = "C:\\Users\\lchumi\\Documents\\Certificadosp12\\FIRMA_PALACIOS_CORDERO_CORSINO_EDUARDO-IMPORTADORA_CUMPLEANOS.p12";
+    String password = "1234";
+
     public String firmarXades(String xml) throws Exception {
-        String rutaCertificado = "C:\\Users\\Luis\\Documents\\Workspace\\Certificados\\ImportadoraCumpleaños.p12";
-        String password = "1234";
 
         String certificateX509_der_hash = null;
         String issuerName = null;
@@ -329,6 +330,42 @@ public class FirmaDigitalUtils {
             j++;
         }
         return bytes1;
+    }
+
+    public List<String> listarAlias() {
+        List<String> aliasList = new ArrayList<>();
+        try (FileInputStream fis = new FileInputStream(rutaCertificado)) {
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(fis, password.toCharArray());
+
+            Enumeration<String> aliases = keyStore.aliases();
+            while (aliases.hasMoreElements()) {
+                aliasList.add(aliases.nextElement());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Manejar la excepción apropiadamente en tu aplicación
+        }
+        return aliasList;
+    }
+
+    public List<X509Certificate> listarCertificados() {
+        List<X509Certificate> certificadosList = new ArrayList<>();
+        try (FileInputStream fis = new FileInputStream(rutaCertificado)) {
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(fis, password.toCharArray());
+
+            Enumeration<String> aliases = keyStore.aliases();
+            while (aliases.hasMoreElements()) {
+                String alias = aliases.nextElement();
+                X509Certificate certificate = (X509Certificate) keyStore.getCertificate(alias);
+                certificadosList.add(certificate);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Manejar la excepción apropiadamente en tu aplicación
+        }
+        return certificadosList;
     }
 
 }

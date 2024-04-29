@@ -41,6 +41,9 @@ public class XadesFirma {
     private static final String SIGNATURE_VALUE_NUMBER=obtenerAleatorio();
     private static final String OBJEVT_NUMBER=obtenerAleatorio();
 
+    String rutaCertificado = "C:\\Users\\lchumi\\Documents\\Certificadosp12\\FIRMA_PALACIOS_CORDERO_CORSINO_EDUARDO-IMPORTADORA_CUMPLEANOS.p12";
+    String password = "1234";
+
     private static String obtenerAleatorio(){
         Random random = new Random();
         String randomNumber;
@@ -52,9 +55,6 @@ public class XadesFirma {
     }
 
     public String firmarXades(String xml) throws Exception{
-        String rutaCertificado="C:\\Users\\Luis\\Documents\\Workspace\\Certificados\\PalaciosNaranjoCorcinoEduardo.p12";
-        String password="1234";
-
         //<?xml version="1.0" encoding="UTF-8"?>
         String sha1Factura=sha1Base64(xml.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>",""));
 
@@ -268,7 +268,7 @@ public class XadesFirma {
         signature.update(data.getBytes(StandardCharsets.UTF_8));
         System.out.println(privateKey+"\n "+signature);
         byte[] signatureBytes= signature.sign();
-        return new String(Base64.encode(signatureBytes),"UTF-8");
+        return new String(Base64.encode(signatureBytes), StandardCharsets.UTF_8);
     }
 
     protected String formatearBase64(String base64Encoded){
