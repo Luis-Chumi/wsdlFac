@@ -8,12 +8,12 @@ package com.cumple.FacturacionElectronicaPrueba.controller;
 
 import com.cumple.FacturacionElectronicaPrueba.modules.firma.FirmaDigitalUtils;
 import com.cumple.FacturacionElectronicaPrueba.modules.xades.XadesFirma;
-import ec.com.virtualsami.keystore.PassStoreKS;
 import ec.com.virtualsami.validacion.ValidarModulo11;
 import ec.com.virtualsami.validacion.ValidarXML;
 import ec.com.virtualsami.xades_firma.InternObjectToSign;
 import ec.com.virtualsami.xades_firma.XAdESASignature;
 import ec.com.virtualsami.xades_firma.XAdESBESSignature;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.http.HttpHeaders;
@@ -22,12 +22,18 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.Path;
 import java.security.cert.Certificate;
@@ -36,6 +42,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/firmaDig")
 @CrossOrigin("*")
@@ -110,6 +117,13 @@ public class FirmaDigitalController {
         return getStringFromDocument(xAdESBESSignature.firmarDocumento());
     }
 
+    @PostMapping("crearRegistro")
+    public ResponseEntity<?> crearRegistro(@RequestBody String xml){
+        String claveAcceso= extraerClave(xml);
+       log.info(claveAcceso);
+       return ResponseEntity.ok(claveAcceso);
+    }
+
     public static String getStringFromDocument(Document document) {
         try {
             DOMSource domSource = new DOMSource(document);
@@ -126,6 +140,37 @@ public class FirmaDigitalController {
         }
     }
 
+
+    private static String extraerClave(String xmlContent){
+
+        String claveAcceso="";
+        String ruc="";
+        try {
+            DocumentBuilderFactory factory =  DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+
+            Document document = builder.parse(new InputSource(new StringReader(xmlContent)));
+
+            NodeList claveAccesoNodes = document.getElementsByTagName("claveAcceso");
+            NodeList rucNodes = document.getElementsByTagName("ruc");
+            if (claveAccesoNodes.getLength() > 0){
+                Element claveAccesoElement = (Element) claveAccesoNodes.item(0);
+                claveAcceso= claveAccesoElement.getTextContent();
+            }else {
+                throw new IllegalArgumentException("El XML no contiene un elemento claveAceeso");
+            }
+            if (rucNodes.getLength() > 0){
+                Element rucElement = (Element) rucNodes.item(0);
+                ruc= rucElement.getTextContent();
+            }else {
+                throw new IllegalArgumentException("El XML no contiene un elemento claveAceeso");
+            }
+            return claveAcceso + " --{}-- "+ ruc;
+        }catch (Exception e) {
+            log.error("ERROR: No se pudo extraer la clave ");
+            return null;
+        }
+    }
 
 
 }
